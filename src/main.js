@@ -13,6 +13,7 @@ const API_KEY = '42087776-9136d7523d21dc11bf8e1a72d';
 const form = document.querySelector('.form');
 const list = document.querySelector('.gallery');
 const loader = document.querySelector('.loader');
+const loadMoreBtn = document.querySelector('.button');
 
 form.addEventListener('submit', handleSearch);
 loader.classList.remove('loader');
@@ -22,13 +23,25 @@ const lightbox = new SimpleLightbox('.gallery a', {
   captionDelay: 250,
 });
 
+const queryParams = {
+  query: '',
+  page: 1,
+  per_page: 40,
+  maxPage: 0,
+};
+
 async function handleSearch(e) {
   e.preventDefault();
+  list.innerHTML = '';
   const form = e.currentTarget;
-  const query = form.elements.query.value.trim();
+  queryParams.query = form.elements.query.value.trim();
   loader.classList.add('loader');
+  loadMoreBtn.classList.add('is-hidden');
+  if (!queryParams.query) {
+    return;
+  }
   try {
-    const { data } = await searchPhotos(query);
+    const { data } = await searchPhotos(queryParams);
     console.log(data);
     let markup = '';
     const datas = data.hits;
@@ -41,8 +54,16 @@ async function handleSearch(e) {
         position: 'topRight',
       });
     }
+    const totalResults = data.totalHits;
+    queryParams.maxPage = Math.ceil(totalResults / queryParams.per_page);
     list.innerHTML = markup;
     loader.classList.remove('loader');
+    if (datas.length > 0 && datas.length !== totalResults) {
+      loadMoreBtn.addEventListener('click', handleLoadMore);
+      loadMoreBtn.classList.remove('is-hidden');
+    } else {
+      loadMoreBtn.classList.add('is-hidden');
+    }
     lightbox.refresh();
   } catch (err) {
     console.log(err);
@@ -51,7 +72,37 @@ async function handleSearch(e) {
   }
 }
 
-async function searchPhotos(query) {
+async function handleLoadMore() {
+  queryParams.page += 1;
+  loader.classList.add('loader');
+  loadMoreBtn.classList.add('is-hidden');
+  try {
+    const { data } = await searchPhotos(queryParams);
+    console.log(data);
+    let markup = '';
+    const datas = data.hits;
+    for (const item of datas) {
+      markup += createMarkup(item);
+    }
+    list.innerHTML += markup;
+  } catch (err) {
+    console.log(err);
+  } finally {
+    loader.classList.remove('loader');
+    loadMoreBtn.classList.remove('is-hidden');
+  }
+
+  if (queryParams.page === queryParams.maxPage) {
+    loadMoreBtn.classList.add('is-hidden');
+    iziToast.info({
+      message: `We're sorry, but you've reached the end of search results.`,
+      position: 'topRight',
+    });
+    loadMoreBtn.removeEventListener('click', handleLoadMore);
+  }
+}
+
+async function searchPhotos({ query, page = 1, per_page }) {
   try {
     const response = await axios.get(`${BASE_URL}/?`, {
       params: {
@@ -60,8 +111,8 @@ async function searchPhotos(query) {
         image_type: 'photo',
         orientation: 'horizontal',
         safesearch: true,
-        page: 1,
-        per_page: 40,
+        page,
+        per_page,
       },
     });
     return response;

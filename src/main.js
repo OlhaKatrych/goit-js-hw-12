@@ -57,6 +57,13 @@ async function handleSearch(e) {
     const totalResults = data.totalHits;
     queryParams.maxPage = Math.ceil(totalResults / queryParams.per_page);
     list.innerHTML = markup;
+    const domRect = list.firstElementChild.getBoundingClientRect();
+
+    scrollBy({
+      top: domRect.height,
+      behavior: 'smooth',
+    });
+
     loader.classList.remove('loader');
     if (datas.length > 0 && datas.length !== totalResults) {
       loadMoreBtn.addEventListener('click', handleLoadMore);
@@ -85,6 +92,12 @@ async function handleLoadMore() {
       markup += createMarkup(item);
     }
     list.innerHTML += markup;
+    const domRect = list.firstElementChild.getBoundingClientRect();
+    scrollBy({
+      top: domRect.height,
+      behavior: 'smooth',
+    });
+    lightbox.refresh();
   } catch (err) {
     console.log(err);
   } finally {

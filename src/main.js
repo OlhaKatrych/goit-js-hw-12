@@ -31,7 +31,8 @@ const queryParams = {
 
 async function handleSearch(e) {
   e.preventDefault();
-  list.innerHTML = queryParams.page;
+  list.innerHTML = '';
+  queryParams.page = 1;
   const form = e.currentTarget;
   queryParams.query = form.elements.query.value.trim();
   loader.classList.add('loader');
@@ -89,8 +90,7 @@ async function handleLoadMore() {
     }
     list.insertAdjacentHTML('beforeend', markup);
     const domRect = list.firstElementChild.getBoundingClientRect();
-    const sumOfDomRect = domRect * 2;
-    console.log(sumOfDomRect);
+    const sumOfDomRect = domRect.height * 2;
     scrollBy({
       top: sumOfDomRect,
       behavior: 'smooth',

@@ -2,7 +2,6 @@ import axios from 'axios';
 
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
-import simpleLightbox from 'simplelightbox';
 
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
@@ -32,7 +31,7 @@ const queryParams = {
 
 async function handleSearch(e) {
   e.preventDefault();
-  list.innerHTML = '';
+  list.innerHTML = queryParams.page;
   const form = e.currentTarget;
   queryParams.query = form.elements.query.value.trim();
   loader.classList.add('loader');
@@ -42,13 +41,13 @@ async function handleSearch(e) {
   }
   try {
     const { data } = await searchPhotos(queryParams);
-    console.log(data);
     let markup = '';
     const datas = data.hits;
     for (const item of datas) {
       markup += createMarkup(item);
     }
     if (datas.length === 0) {
+      loader.classList.remove('loader');
       iziToast.error({
         message: `Sorry, there are no images matching your search query. Please try again!`,
         position: 'topRight',
@@ -57,13 +56,6 @@ async function handleSearch(e) {
     const totalResults = data.totalHits;
     queryParams.maxPage = Math.ceil(totalResults / queryParams.per_page);
     list.innerHTML = markup;
-    const domRect = list.firstElementChild.getBoundingClientRect();
-
-    scrollBy({
-      top: domRect.height,
-      behavior: 'smooth',
-    });
-
     loader.classList.remove('loader');
     if (datas.length > 0 && datas.length !== totalResults) {
       loadMoreBtn.addEventListener('click', handleLoadMore);
@@ -73,7 +65,11 @@ async function handleSearch(e) {
     }
     lightbox.refresh();
   } catch (err) {
-    console.log(err);
+    loader.classList.remove('loader');
+    iziToast.error({
+      message: `Something is going wrong, no worry, we are working on it!👌`,
+      position: 'topRight',
+    });
   } finally {
     form.reset();
   }
@@ -91,15 +87,21 @@ async function handleLoadMore() {
     for (const item of datas) {
       markup += createMarkup(item);
     }
-    list.innerHTML += markup;
+    list.insertAdjacentHTML('beforeend', markup);
     const domRect = list.firstElementChild.getBoundingClientRect();
+    const sumOfDomRect = domRect * 2;
+    console.log(sumOfDomRect);
     scrollBy({
-      top: domRect.height,
+      top: sumOfDomRect,
       behavior: 'smooth',
     });
     lightbox.refresh();
   } catch (err) {
-    console.log(err);
+    loader.classList.remove('loader');
+    iziToast.error({
+      message: `Something is going wrong, no worry, we are working on it!👌`,
+      position: 'topRight',
+    });
   } finally {
     loader.classList.remove('loader');
     loadMoreBtn.classList.remove('is-hidden');
